@@ -1,0 +1,5 @@
+include ':lib-v8a'
+include ':lib-v7a'
+include ':lib'
+include ':demo'
+rootProject.name = "ArcFace4.0"

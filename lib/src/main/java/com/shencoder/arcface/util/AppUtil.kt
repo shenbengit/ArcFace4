@@ -26,6 +26,7 @@ internal object AppUtil {
         'E', 'F'
     )
 
+    @JvmStatic
     fun md5EncryptAndBase64(str: String): String {
         return encodeBase64(md5Encrypt(str))
     }
@@ -51,11 +52,13 @@ internal object AppUtil {
     }
 
     @Throws(Exception::class)
+    @JvmStatic
     fun decodeHex(data: String): ByteArray {
         return decodeHex(data.toCharArray())
     }
 
     @Throws(Exception::class)
+    @JvmStatic
     fun decodeHex(data: CharArray): ByteArray {
         val len = data.size
         if (len and 0x01 != 0) {
@@ -85,11 +88,12 @@ internal object AppUtil {
         return digit
     }
 
+    @JvmStatic
     fun encodeHexString(data: ByteArray, toLowerCase: Boolean): String {
         return String(encodeHex(data, toLowerCase))
     }
 
-    @JvmOverloads
+    @JvmStatic
     fun encodeHex(data: ByteArray, toLowerCase: Boolean = true): CharArray {
         return encodeHex(data, if (toLowerCase) DIGITS_LOWER else DIGITS_UPPER)
     }

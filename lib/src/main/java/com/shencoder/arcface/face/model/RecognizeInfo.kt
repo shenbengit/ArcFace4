@@ -1,9 +1,6 @@
 package com.shencoder.arcface.face.model
 
-import com.arcsoft.face.AgeInfo
-import com.arcsoft.face.Face3DAngle
-import com.arcsoft.face.GenderInfo
-import com.arcsoft.face.LivenessInfo
+import com.arcsoft.face.*
 import com.shencoder.arcface.constant.RecognizeStatus
 
 /**
@@ -32,6 +29,11 @@ class RecognizeInfo(val faceId: Int) {
      * 3D角度信息
      */
     var angle = Face3DAngle()
+
+    /**
+     * 是否佩戴口罩
+     */
+    var mask = MaskInfo.UNKNOWN
 
     /**
      * 用于记录人脸特征提取出错重试次数

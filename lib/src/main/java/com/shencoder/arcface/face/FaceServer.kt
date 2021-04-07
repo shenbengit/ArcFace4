@@ -10,7 +10,6 @@ import com.arcsoft.face.enums.ExtractType
 import com.arcsoft.imageutil.ArcSoftImageFormat
 import com.arcsoft.imageutil.ArcSoftImageUtil
 import com.arcsoft.imageutil.ArcSoftImageUtilError
-import com.shencoder.arcface.configuration.DetectFaceOrient
 import com.shencoder.arcface.configuration.FaceFeatureDataBean
 import com.shencoder.arcface.face.model.CompareResult
 import com.shencoder.arcface.util.LogUtil
@@ -36,18 +35,18 @@ class FaceServer {
     /**
      * 初始化人脸引擎
      * @param context 上下文
-     * @param faceOrient 人脸检测角度，单一角度检测，不支持[DetectFaceOrient.ASF_OP_ALL_OUT]
-     * [DetectFaceOrient.ASF_OP_0_ONLY]
-     * [DetectFaceOrient.ASF_OP_90_ONLY]
-     * [DetectFaceOrient.ASF_OP_180_ONLY]
-     * [DetectFaceOrient.ASF_OP_270_ONLY]
+     * @param faceOrient 人脸检测角度，单一角度检测，不支持[DetectFaceOrientPriority.ASF_OP_ALL_OUT]
+     * [DetectFaceOrientPriority.ASF_OP_0_ONLY]
+     * [DetectFaceOrientPriority.ASF_OP_90_ONLY]
+     * [DetectFaceOrientPriority.ASF_OP_180_ONLY]
+     * [DetectFaceOrientPriority.ASF_OP_270_ONLY]
      */
     fun init(
         context: Context,
-        faceOrient: DetectFaceOrient = DetectFaceOrient.ASF_OP_0_ONLY
+        faceOrient: DetectFaceOrientPriority = DetectFaceOrientPriority.ASF_OP_0_ONLY
     ) {
         val orientPriority =
-            if (faceOrient == DetectFaceOrient.ASF_OP_ALL_OUT) {
+            if (faceOrient == DetectFaceOrientPriority.ASF_OP_ALL_OUT) {
                 DetectFaceOrientPriority.ASF_OP_0_ONLY
             } else {
                 DetectFaceOrientPriority.valueOf(faceOrient.name)
@@ -57,7 +56,7 @@ class FaceServer {
             DetectMode.ASF_DETECT_MODE_IMAGE,
             orientPriority,
             1,
-            FaceEngine.ASF_FACE_DETECT or FaceEngine.ASF_FACE_RECOGNITION
+            FaceEngine.ASF_FACE_DETECT or FaceEngine.ASF_MASK_DETECT or FaceEngine.ASF_FACE_RECOGNITION
         )
         LogUtil.i("${TAG}人脸比对引擎初始化:$result")
     }
@@ -125,10 +124,9 @@ class FaceServer {
      * 最好在子线程运行
      *
      * @param bitmap
-     * @param isWornMask 是否戴口罩，默认未带
      * @return 特征码
      */
-    fun extractFaceFeature(bitmap: Bitmap?, isWornMask: Boolean = false): ByteArray? {
+    fun extractFaceFeature(bitmap: Bitmap?): ByteArray? {
         if (bitmap == null) {
             return null
         }
@@ -156,21 +154,44 @@ class FaceServer {
                     faceInfoList
                 )
                 if (detectFaceResult == ErrorInfo.MOK && faceInfoList.isNotEmpty()) {
-                    val faceFeature = FaceFeature()
-                    val extractResult = faceEngine.extractFaceFeature(
+                    //口罩识别
+                    val detectMaskResult = faceEngine.process(
                         imageData,
                         alignedBitmap.width,
                         alignedBitmap.height,
-                        FaceEngine.CP_PAF_BGR24,
-                        faceInfoList[0],
-                        ExtractType.REGISTER,
-                        if (isWornMask) MaskInfo.WORN else MaskInfo.NOT_WORN,
-                        faceFeature
+                        FaceEngine.CP_PAF_NV21,
+                        faceInfoList,
+                        FaceEngine.ASF_MASK_DETECT
                     )
-                    if (extractResult == ErrorInfo.MOK) {
-                        feature = faceFeature.featureData
+                    val maskList = mutableListOf<MaskInfo>()
+                    if (detectMaskResult == ErrorInfo.MOK) {
+                        val maskResult = faceEngine.getMask(maskList)
+                        if (maskResult == ErrorInfo.MOK) {
+                            if (maskList.size == faceInfoList.size) {
+                                val faceFeature = FaceFeature()
+                                val extractResult = faceEngine.extractFaceFeature(
+                                    imageData,
+                                    alignedBitmap.width,
+                                    alignedBitmap.height,
+                                    FaceEngine.CP_PAF_BGR24,
+                                    faceInfoList[0],
+                                    ExtractType.REGISTER,
+                                    maskList[0].mask,
+                                    faceFeature
+                                )
+                                if (extractResult == ErrorInfo.MOK) {
+                                    feature = faceFeature.featureData
+                                } else {
+                                    LogUtil.e("${TAG}extractFaceFeature-extractFaceFeature: $extractResult")
+                                }
+                            } else {
+                                LogUtil.e("${TAG}extractFaceFeature-getMask: maskList.size(${maskList.size}) != faceInfoList.size(${faceInfoList.size})")
+                            }
+                        } else {
+                            LogUtil.e("${TAG}extractFaceFeature-getMask: $maskResult")
+                        }
                     } else {
-                        LogUtil.e("${TAG}extractFaceFeature-extractFaceFeature: $extractResult")
+                        LogUtil.e("${TAG}extractFaceFeature-detectMaskResult: $detectMaskResult")
                     }
                 } else {
                     LogUtil.e("${TAG}extractFaceFeature-detectFaces: ${detectFaceResult}, faceInfoList.size: ${faceInfoList.size}")

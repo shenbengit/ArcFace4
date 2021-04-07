@@ -3,6 +3,7 @@ package com.shencoder.arcface.configuration
 import android.content.Context
 import androidx.annotation.FloatRange
 import androidx.annotation.IntRange
+import com.arcsoft.face.enums.DetectFaceOrientPriority
 import com.shencoder.arcface.callback.OnErrorCallback
 import com.shencoder.arcface.callback.OnRecognizeCallback
 import com.shencoder.arcface.view.ViewfinderView
@@ -36,14 +37,14 @@ class FaceConfiguration internal constructor(builder: Builder) {
     val recognizeCallback: OnRecognizeCallback? = builder.recognizeCallback
 
     /**
+     * 人脸检测角度
+     */
+    val detectFaceOrient: DetectFaceOrientPriority = builder.detectFaceOrient
+
+    /**
      * 是否需要识别
      */
     val enableRecognize: Boolean = builder.enableRecognize
-
-    /**
-     * 人脸检测角度
-     */
-    val detectFaceOrient: DetectFaceOrient = builder.detectFaceOrient
 
     /**
      * 活体检测类型
@@ -66,12 +67,7 @@ class FaceConfiguration internal constructor(builder: Builder) {
     val enableImageQuality: Boolean = builder.enableImageQuality
 
     /**
-     * 图像质量阈值，有效值范围(0.0f,1.0f)
-     */
-    val imageQualityThreshold: Float = builder.imageQualityThreshold
-
-    /**
-     * 最大需要检测的人脸个数，取值范围[1,50]
+     * 最大需要检测的人脸个数，取值范围[1,10]
      */
     val detectFaceMaxNum: Int = builder.detectFaceMaxNum
 
@@ -151,7 +147,8 @@ class FaceConfiguration internal constructor(builder: Builder) {
     val livenessFailedRetryInterval: Long = builder.livenessFailedRetryInterval
 
     /**
-     * 是否启用人脸比对
+     * 是否启用人脸比对，不启用人脸比对使用注册模式，注意：需要不带口罩；启用人脸比对使用比对模式
+     * @see OnRecognizeCallback.onGetFaceFeature
      */
     val enableCompareFace: Boolean = builder.enableCompareFace
 
@@ -171,6 +168,23 @@ class FaceConfiguration internal constructor(builder: Builder) {
     val enableMask: Boolean = builder.enableMask
 
     /**
+     * 人脸大小限制
+     * 人脸大小超过这个值才会进行识别操作
+     * 由于目前人脸框的宽高接近一致，近似为正方形
+     */
+    val faceSizeLimit: Int = builder.faceSizeLimit
+
+    /**
+     * 图像质量检测阈值：适用于不戴口罩且人脸识别场景
+     */
+    val imageQualityNoMaskRecognizeThreshold: Float = builder.imageQualityNoMaskRecognizeThreshold
+
+    /**
+     * 图像质量检测阈值：适用于戴口罩且人脸识别场景
+     */
+    val imageQualityMaskRecognizeThreshold: Float = builder.imageQualityMaskRecognizeThreshold
+
+    /**
      * 人脸识别时异常回调
      */
     val onErrorCallback: OnErrorCallback? = builder.onErrorCallback
@@ -182,8 +196,10 @@ class FaceConfiguration internal constructor(builder: Builder) {
         /**
          * 人脸检测角度
          */
-        internal var detectFaceOrient: DetectFaceOrient = DetectFaceOrient.ASF_OP_0_ONLY
-        fun setDetectFaceOrient(detectFaceOrient: DetectFaceOrient) =
+        internal var detectFaceOrient: DetectFaceOrientPriority =
+            DetectFaceOrientPriority.ASF_OP_0_ONLY
+
+        fun setDetectFaceOrient(detectFaceOrient: DetectFaceOrientPriority) =
             apply { this.detectFaceOrient = detectFaceOrient }
 
         /**
@@ -238,24 +254,10 @@ class FaceConfiguration internal constructor(builder: Builder) {
             apply { this.enableImageQuality = enableImageQuality }
 
         /**
-         * 图像质量阈值，有效值范围(0.0f,1.0f)
-         */
-        internal var imageQualityThreshold: Float = 0.35f
-        fun setImageQualityThreshold(
-            @FloatRange(
-                from = 0.0,
-                to = 1.0,
-                fromInclusive = false,
-                toInclusive = false
-            ) imageQualityThreshold: Float
-        ) =
-            apply { this.imageQualityThreshold = imageQualityThreshold }
-
-        /**
-         * 最大需要检测的人脸个数，取值范围[1,50]
+         * 最大需要检测的人脸个数，取值范围[1,10]
          */
         internal var detectFaceMaxNum = 1
-        fun setDetectFaceMaxNum(@IntRange(from = 1, to = 50) detectFaceMaxNum: Int) =
+        fun setDetectFaceMaxNum(@IntRange(from = 1, to = 10) detectFaceMaxNum: Int) =
             apply { this.detectFaceMaxNum = detectFaceMaxNum }
 
         /**
@@ -415,6 +417,32 @@ class FaceConfiguration internal constructor(builder: Builder) {
          */
         internal var enableMask: Boolean = false
         fun enableMask(enableMask: Boolean) = apply { this.enableMask = enableMask }
+
+        /**
+         * 人脸大小限制
+         * 人脸大小超过这个值才会进行识别操作
+         * 由于目前人脸框的宽高接近一致，近似为正方形
+         */
+        internal var faceSizeLimit: Int = 160
+        fun setFaceSizeLimit(faceSizeLimit: Int) = apply { this.faceSizeLimit = faceSizeLimit }
+
+        /**
+         * 图像质量检测阈值：适用于不戴口罩且人脸识别场景
+         */
+        internal var imageQualityNoMaskRecognizeThreshold: Float = 0.49f
+        fun setImageQualityNoMaskRecognizeThreshold(imageQualityNoMaskRecognizeThreshold: Float) =
+            apply {
+                this.imageQualityNoMaskRecognizeThreshold = imageQualityNoMaskRecognizeThreshold
+            }
+
+        /**
+         * 图像质量检测阈值：适用于戴口罩且人脸识别场景
+         */
+        internal var imageQualityMaskRecognizeThreshold: Float = 0.29f
+        fun setImageQualityMaskRecognizeThreshold(imageQualityMaskRecognizeThreshold: Float) =
+            apply {
+                this.imageQualityMaskRecognizeThreshold = imageQualityMaskRecognizeThreshold
+            }
 
         /**
          * 人脸识别时异常回调

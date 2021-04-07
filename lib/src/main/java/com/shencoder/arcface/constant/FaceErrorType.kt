@@ -14,6 +14,11 @@ enum class FaceErrorType {
     DETECT_FACES,
 
     /**
+     * 检测口罩
+     */
+    DETECT_MASK,
+
+    /**
      * 图片质量检测错误
      */
     IMAGE_QUALITY,

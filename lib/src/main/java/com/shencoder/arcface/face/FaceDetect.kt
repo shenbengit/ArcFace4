@@ -7,7 +7,6 @@ import com.arcsoft.face.FaceInfo
 import com.arcsoft.face.enums.DetectFaceOrientPriority
 import com.arcsoft.face.enums.DetectMode
 import com.shencoder.arcface.callback.FaceDetectCallback
-import com.shencoder.arcface.configuration.DetectFaceOrient
 import com.shencoder.arcface.constant.FaceConstant
 import com.shencoder.arcface.util.LogUtil
 import java.util.concurrent.ExecutorService
@@ -68,7 +67,7 @@ class FaceDetect {
         context: Context,
         enableImageQuality: Boolean = false,
         detectFaceMaxNum: Int,
-        detectFaceOrient: DetectFaceOrient = DetectFaceOrient.ASF_OP_0_ONLY
+        detectFaceOrient: DetectFaceOrientPriority = DetectFaceOrientPriority.ASF_OP_0_ONLY
     ) {
         //初始化人脸检测引擎
         var mask = FaceEngine.ASF_FACE_DETECT

@@ -1,14 +1,15 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
+apply from: 'bintray.gradle'
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.2"
+    compileSdkVersion rootProject.ext.android.compileSdkVersion
+    buildToolsVersion rootProject.ext.android.buildToolsVersion
 
     defaultConfig {
-        minSdkVersion 19
-        targetSdkVersion 30
+        minSdkVersion rootProject.ext.android.minSdkVersion
+        targetSdkVersion rootProject.ext.android.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
@@ -45,4 +46,6 @@ dependencies {
 //    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     api 'io.fotoapparat:fotoapparat:2.7.0'
+    api files('libs/arcsoft_face.jar')
+    api files('libs/arcsoft_image_util.jar')
 }

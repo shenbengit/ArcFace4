@@ -6,13 +6,41 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
+    <com.shencoder.arcface.view.FaceCameraView
+        android:id="@+id/faceCameraView"
+        android:layout_width="match_parent"
+        android:layout_height="450dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/btnDisableIr"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="关闭IR人脸检测"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/btnEnableIr"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="启用IR人脸检测"
+        app:layout_constraintBottom_toTopOf="@id/btnDisableIr"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Bitmap生成特征码"
+        app:layout_constraintBottom_toTopOf="@id/btnEnableIr"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

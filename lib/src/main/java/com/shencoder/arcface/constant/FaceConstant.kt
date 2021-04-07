@@ -67,6 +67,10 @@ object FaceConstant {
         sFaceErrorMsgArray.put(ErrorInfo.MERR_FSDK_FACEFEATURE_INVALID_FORMAT, "人脸特征检测格式错误")
         sFaceErrorMsgArray.put(ErrorInfo.MERR_FSDK_FACEFEATURE_INVALID_PARAM, "人脸特征检测参数错误")
         sFaceErrorMsgArray.put(ErrorInfo.MERR_FSDK_FACEFEATURE_LOW_CONFIDENCE_LEVEL, "人脸特征检测结果置信度低")
+        sFaceErrorMsgArray.put(ErrorInfo.MERR_FSDK_FACEFEATURE_EXPIRED, "人脸特征检测结果操作过期")
+        sFaceErrorMsgArray.put(ErrorInfo.MERR_FSDK_FACEFEATURE_MISSFACE, "人脸特征检测人脸丢失人脸特征检测结果置信度低")
+        sFaceErrorMsgArray.put(ErrorInfo.MERR_FSDK_FACEFEATURE_NO_FACE, "人脸特征检测没有人脸")
+        sFaceErrorMsgArray.put(ErrorInfo.MERR_FSDK_FACEFEATURE_FACEDATA, "人脸特征检测人脸信息错误")
 
         sFaceErrorMsgArray.put(ErrorInfo.MERR_ASF_EX_FEATURE_UNSUPPORTED_ON_INIT, "Engine不支持的检测属性")
         sFaceErrorMsgArray.put(ErrorInfo.MERR_ASF_EX_FEATURE_UNINITED, "需要检测的属性未初始化")

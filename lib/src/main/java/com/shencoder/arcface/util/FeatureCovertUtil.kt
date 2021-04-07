@@ -1,5 +1,7 @@
 package com.shencoder.arcface.util
 
+import com.arcsoft.face.FaceFeature
+
 /**
  * 人脸特征码转换工具
  *
@@ -11,7 +13,7 @@ object FeatureCovertUtil {
     /**
      * 人脸特征码的长度
      */
-    private const val FEATURE_BYTE_ARRAY_LENGTH = 1032
+    private const val FEATURE_BYTE_ARRAY_LENGTH = FaceFeature.FEATURE_SIZE
     private const val FEATURE_HEX_STRING_LENGTH = FEATURE_BYTE_ARRAY_LENGTH * 2
 
     /**

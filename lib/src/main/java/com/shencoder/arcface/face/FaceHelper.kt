@@ -7,7 +7,6 @@ import com.arcsoft.face.enums.DetectFaceOrientPriority
 import com.arcsoft.face.enums.DetectMode
 import com.arcsoft.face.enums.ExtractType
 import com.shencoder.arcface.callback.OnPreviewCallback
-import com.shencoder.arcface.configuration.DetectFaceOrient
 import com.shencoder.arcface.configuration.FaceConfiguration
 import com.shencoder.arcface.configuration.LivenessType
 import com.shencoder.arcface.constant.FaceConstant
@@ -18,7 +17,6 @@ import com.shencoder.arcface.face.model.FacePreviewInfo
 import com.shencoder.arcface.face.model.RecognizeInfo
 import com.shencoder.arcface.util.FaceRectTransformerUtil
 import com.shencoder.arcface.util.LogUtil
-import java.lang.Error
 import java.util.concurrent.*
 
 /**
@@ -143,11 +141,6 @@ internal class FaceHelper(
     private val facePreviewInfo: MutableList<FacePreviewInfo> = mutableListOf()
 
     /**
-     * 虹软图片质量检测信息
-     */
-    private val imageQualityList: MutableList<Float> = mutableListOf()
-
-    /**
      * 当前是否有人
      *
      * true:有人
@@ -172,10 +165,6 @@ internal class FaceHelper(
         if (configuration.enableMask) {
             mask = mask or FaceEngine.ASF_MASK_DETECT
         }
-        if (configuration.enableImageQuality) {
-            mask = mask or FaceEngine.ASF_IMAGEQUALITY
-        }
-
         val result = detectFaceEngine.init(
             configuration.context,
             DetectMode.ASF_DETECT_MODE_VIDEO,
@@ -190,12 +179,15 @@ internal class FaceHelper(
         if (configuration.enableRecognize) {
             //初始化特征提取引擎
             val orientPriority =
-                if (configuration.detectFaceOrient == DetectFaceOrient.ASF_OP_ALL_OUT) {
+                if (configuration.detectFaceOrient == DetectFaceOrientPriority.ASF_OP_ALL_OUT) {
                     DetectFaceOrientPriority.ASF_OP_0_ONLY
                 } else {
                     DetectFaceOrientPriority.valueOf(configuration.detectFaceOrient.name)
                 }
-            val mask = FaceEngine.ASF_FACE_RECOGNITION
+            var mask = FaceEngine.ASF_FACE_RECOGNITION
+            if (configuration.enableImageQuality) {
+                mask = mask or FaceEngine.ASF_IMAGEQUALITY
+            }
             val result = extractFeatureEngine.init(
                 configuration.context,
                 DetectMode.ASF_DETECT_MODE_IMAGE,
@@ -211,7 +203,7 @@ internal class FaceHelper(
         val detectInfo = configuration.detectInfo
         if (configuration.livenessType != LivenessType.NONE) {
             val orientPriority =
-                if (configuration.detectFaceOrient == DetectFaceOrient.ASF_OP_ALL_OUT) {
+                if (configuration.detectFaceOrient == DetectFaceOrientPriority.ASF_OP_ALL_OUT) {
                     DetectFaceOrientPriority.ASF_OP_0_ONLY
                 } else {
                     DetectFaceOrientPriority.valueOf(configuration.detectFaceOrient.name)
@@ -306,7 +298,11 @@ internal class FaceHelper(
                     val maskResult = detectFaceEngine.getMask(maskInfoList)
                     if (maskResult == ErrorInfo.MOK) {
 
+                    } else {
+
                     }
+                } else {
+
                 }
             }
             //转换人脸信息
@@ -340,38 +336,6 @@ internal class FaceHelper(
             }
 
             if (configuration.enableRecognize && faceInfoList.isNotEmpty()) {
-//                //启用人脸检测并且检测到的人脸不为空
-//                if (configuration.enableImageQuality) {
-//                    imageQualityList.clear()
-//                    //图片质量检测
-//                    val imageQualityResult = detectFaceEngine.imageQualityDetect(
-//                        rgbNV21,
-//                        previewWidth,
-//                        previewHeight,
-//                        FaceEngine.CP_PAF_NV21,
-//                        faceInfoList,
-//                        0,
-//                        imageQualityList
-//                    )
-//                    when (imageQualityResult) {
-//                        ErrorInfo.MOK -> {
-//                            val size = imageQualityList.size
-//                            for (index in 0 until size) {
-//                                facePreviewInfo[index].imageQuality = imageQualityList[index]
-//                            }
-//                        }
-//                        ErrorInfo.MERR_FSDK_FACEFEATURE_LOW_CONFIDENCE_LEVEL -> {
-//                            //人脸置信度低，忽略
-//                        }
-//                        else -> {
-//                            onError(
-//                                FaceErrorType.IMAGE_QUALITY,
-//                                imageQualityResult,
-//                                FaceConstant.getFaceErrorMsg(imageQualityResult)
-//                            )
-//                        }
-//                    }
-//                }
                 //开始识别
                 doRecognize(rgbNV21, previewWidth, previewHeight, facePreviewInfo)
             }
@@ -424,8 +388,8 @@ internal class FaceHelper(
 
         recognizeInfoMap.clear()
         faceInfoList.clear()
+        maskInfoList.clear()
         facePreviewInfo.clear()
-        imageQualityList.clear()
         irNV21 = null
     }
 
@@ -510,10 +474,7 @@ internal class FaceHelper(
         faceInfoList: List<FacePreviewInfo>
     ) {
         for (previewInfo in faceInfoList) {
-            if (configuration.enableImageQuality
-                && previewInfo.imageQuality < configuration.imageQualityThreshold
-            ) {
-                //启用图片质量检测并且图片质量小于阈值，跳过
+            if (judgeFaceSize(previewInfo).not()) {
                 continue
             }
             if (previewInfo.recognizeAreaValid.not()) {
@@ -551,6 +512,15 @@ internal class FaceHelper(
                 )
             }
         }
+    }
+
+    /**
+     * 判断人脸大小是否超过可识别限制
+     */
+    private fun judgeFaceSize(previewInfo: FacePreviewInfo): Boolean {
+        val rect = previewInfo.faceInfoRgb.rect
+        // 由于目前人脸框的宽高接近一致
+        return rect.width() >= configuration.faceSizeLimit && rect.height() >= configuration.faceSizeLimit
     }
 
     /**
@@ -603,7 +573,8 @@ internal class FaceHelper(
                 width,
                 height,
                 info.faceId,
-                info.faceInfoRgb
+                info.faceInfoRgb,
+                info.mask
             )
         )
     }
@@ -654,7 +625,7 @@ internal class FaceHelper(
                 synchronized(recognizeInfo.lock) {
                     recognizeInfo.lock.notifyAll()
                 }
-//                retryLivenessDetectDelayed(faceId)
+                retryLivenessDetectDelayed(faceId)
             } else {
                 changeLiveness(faceId, LivenessInfo.UNKNOWN)
             }
@@ -670,7 +641,8 @@ internal class FaceHelper(
         faceFeature: FaceFeature?,
         faceId: Int,
         errorCode: Int,
-        nv21: ByteArray
+        nv21: ByteArray,
+        mask: Int
     ) {
         if (recognizeInfoMap.containsKey(faceId).not()) {
             //人脸已离开，不用处理
@@ -678,6 +650,7 @@ internal class FaceHelper(
             return
         }
         val recognizeInfo = getRecognizeInfo(faceId)
+        recognizeInfo.mask = mask
         when {
             faceFeature == null -> {
                 changeMsg(faceId, "ExtractFailed:${errorCode},faceId:${faceId}")
@@ -687,7 +660,7 @@ internal class FaceHelper(
                     //错误码不为检测置信度低或者在尝试最大次数后，特征提取仍然失败，则认为识别未通过
                     recognizeInfo.resetExtractFeatureErrorRetryCount()
                     changeRecognizeStatus(faceId, RecognizeStatus.FAILED)
-//                    retryRecognizeDelayed(faceId)
+                    retryRecognizeDelayed(faceId)
                 } else {
                     changeRecognizeStatus(faceId, RecognizeStatus.TO_RETRY)
                 }
@@ -704,7 +677,7 @@ internal class FaceHelper(
                     try {
                         recognizeInfo.lock.wait()
                         //避免比对中途，人脸离开了
-                        onFaceFeatureInfoGet(faceFeature, faceId, errorCode, nv21)
+                        onFaceFeatureInfoGet(faceFeature, faceId, errorCode, nv21, mask)
                     } catch (e: InterruptedException) {
                         LogUtil.w("${TAG}onFaceFeatureInfoGet: 等待活体结果时退出界面会执行，正常现象，可注释异常代码块")
                     }
@@ -906,10 +879,61 @@ internal class FaceHelper(
         private val width: Int,
         private val height: Int,
         private val faceId: Int,
-        private val faceInfo: FaceInfo
+        private val faceInfo: FaceInfo,
+        private val mask: Int
     ) : Runnable {
 
         override fun run() {
+            if (configuration.enableImageQuality) {
+                //启用图片质量检测
+                val qualitySimilar = ImageQualitySimilar()
+                val result: Int
+                synchronized(extractFeatureEngine) {
+                    result = extractFeatureEngine.imageQualityDetect(
+                        rgbNV21,
+                        width,
+                        height,
+                        FaceEngine.CP_PAF_NV21,
+                        faceInfo,
+                        mask,
+                        qualitySimilar
+                    )
+                }
+                if (result == ErrorInfo.MOK) {
+                    val score = qualitySimilar.score
+                    val threshold = if (mask == MaskInfo.WORN) {
+                        configuration.imageQualityMaskRecognizeThreshold
+                    } else {
+                        configuration.imageQualityNoMaskRecognizeThreshold
+                    }
+                    if (score >= threshold) {
+                        extractFaceFeature()
+                    } else {
+                        onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask)
+                        onError(
+                            FaceErrorType.IMAGE_QUALITY,
+                            result,
+                            "imageQualityDetect score too low"
+                        )
+                    }
+                } else {
+                    onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask)
+                    onError(
+                        FaceErrorType.IMAGE_QUALITY,
+                        result,
+                        FaceConstant.getFaceErrorMsg(result)
+                    )
+                }
+            } else {
+                //直接人脸特征码检测
+                extractFaceFeature()
+            }
+        }
+
+        /**
+         * 提取人脸特征码
+         */
+        private fun extractFaceFeature() {
             val faceFeature = FaceFeature()
             val result: Int
             synchronized(extractFeatureEngine) {
@@ -919,15 +943,19 @@ internal class FaceHelper(
                     height,
                     FaceEngine.CP_PAF_NV21,
                     faceInfo,
-                    ExtractType.RECOGNIZE,
-                    0,
+                    if (configuration.enableCompareFace) {
+                        ExtractType.RECOGNIZE
+                    } else {
+                        ExtractType.REGISTER
+                    },
+                    mask,
                     faceFeature
                 )
             }
             if (result == ErrorInfo.MOK) {
-                onFaceFeatureInfoGet(faceFeature, faceId, result, rgbNV21)
+                onFaceFeatureInfoGet(faceFeature, faceId, result, rgbNV21, mask)
             } else {
-                onFaceFeatureInfoGet(null, faceId, result, rgbNV21)
+                onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask)
                 onError(
                     FaceErrorType.EXTRACT_FEATURE,
                     result,
@@ -935,6 +963,5 @@ internal class FaceHelper(
                 )
             }
         }
-
     }
 }

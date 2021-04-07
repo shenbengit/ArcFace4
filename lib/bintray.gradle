@@ -1,0 +1,22 @@
+apply plugin: 'com.github.panpf.bintray-publish'
+
+publish {
+    repoName = 'android-lib'//远程仓库名字,不指明，默认是上传到maven
+    userOrg = 'shencoder'
+    groupId = 'com.shencoder'
+    artifactId = 'arc-face-4.0'
+    publishVersion = rootProject.ext.android.versionName
+    desc = 'ArcFace For Android'
+    website = 'https://github.com/shenbengit/ArcFace4.0'
+}
+
+tasks.withType(Javadoc) {//防止编码问题
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
+    options.addStringOption('docEncoding', 'UTF-8')
+}
+
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}

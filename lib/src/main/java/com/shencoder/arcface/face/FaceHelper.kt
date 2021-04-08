@@ -168,7 +168,7 @@ internal class FaceHelper(
         val result = detectFaceEngine.init(
             configuration.context,
             DetectMode.ASF_DETECT_MODE_VIDEO,
-            DetectFaceOrientPriority.valueOf(configuration.detectFaceOrient.name),
+            configuration.detectFaceOrient,
             configuration.detectFaceMaxNum,
             mask
         )
@@ -182,7 +182,7 @@ internal class FaceHelper(
                 if (configuration.detectFaceOrient == DetectFaceOrientPriority.ASF_OP_ALL_OUT) {
                     DetectFaceOrientPriority.ASF_OP_0_ONLY
                 } else {
-                    DetectFaceOrientPriority.valueOf(configuration.detectFaceOrient.name)
+                    configuration.detectFaceOrient
                 }
             var mask = FaceEngine.ASF_FACE_RECOGNITION
             if (configuration.enableImageQuality) {
@@ -206,7 +206,7 @@ internal class FaceHelper(
                 if (configuration.detectFaceOrient == DetectFaceOrientPriority.ASF_OP_ALL_OUT) {
                     DetectFaceOrientPriority.ASF_OP_0_ONLY
                 } else {
-                    DetectFaceOrientPriority.valueOf(configuration.detectFaceOrient.name)
+                    configuration.detectFaceOrient
                 }
             if (configuration.livenessType == LivenessType.RGB) {
                 detectInfoMask = detectInfoMask or FaceEngine.ASF_LIVENESS
@@ -296,13 +296,19 @@ internal class FaceHelper(
                 )
                 if (detectMaskResult == ErrorInfo.MOK) {
                     val maskResult = detectFaceEngine.getMask(maskInfoList)
-                    if (maskResult == ErrorInfo.MOK) {
-
-                    } else {
-
+                    if (maskResult != ErrorInfo.MOK) {
+                        onError(
+                            FaceErrorType.DETECT_MASK,
+                            detectMaskResult,
+                            FaceConstant.getFaceErrorMsg(maskResult)
+                        )
                     }
                 } else {
-
+                    onError(
+                        FaceErrorType.DETECT_MASK,
+                        detectMaskResult,
+                        FaceConstant.getFaceErrorMsg(detectMaskResult)
+                    )
                 }
             }
             //转换人脸信息
@@ -339,7 +345,6 @@ internal class FaceHelper(
                 //开始识别
                 doRecognize(rgbNV21, previewWidth, previewHeight, facePreviewInfo)
             }
-
             //清除离开人脸
             clearLeftFace(faceInfoList)
             //回调预览人脸数据
@@ -516,6 +521,7 @@ internal class FaceHelper(
 
     /**
      * 判断人脸大小是否超过可识别限制
+     * @return true:超过 继续识别；false:小于阈值 忽略
      */
     private fun judgeFaceSize(previewInfo: FacePreviewInfo): Boolean {
         val rect = previewInfo.faceInfoRgb.rect
@@ -616,9 +622,7 @@ internal class FaceHelper(
             }
         } else {
             changeMsg(faceId, "ProcessFailed:${errorCode},faceId:${faceId}")
-            if (errorCode != ErrorInfo.MERR_FSDK_FACEFEATURE_LOW_CONFIDENCE_LEVEL
-                && recognizeInfo.increaseAndGetLivenessErrorRetryCount() > configuration.livenessErrorRetryCount
-            ) {
+            if (recognizeInfo.increaseAndGetLivenessErrorRetryCount() > configuration.livenessErrorRetryCount) {
                 //错误码不为检测置信度低或者在尝试最大次数后，活体检测仍然失败，则认为失败
                 recognizeInfo.resetLivenessErrorRetryCount()
                 changeLiveness(faceId, RequestLivenessStatus.FAILED)
@@ -642,7 +646,8 @@ internal class FaceHelper(
         faceId: Int,
         errorCode: Int,
         nv21: ByteArray,
-        mask: Int
+        mask: Int,
+        isImageQualityDetect: Boolean
     ) {
         if (recognizeInfoMap.containsKey(faceId).not()) {
             //人脸已离开，不用处理
@@ -650,13 +655,18 @@ internal class FaceHelper(
             return
         }
         val recognizeInfo = getRecognizeInfo(faceId)
-        recognizeInfo.mask = mask
         when {
             faceFeature == null -> {
-                changeMsg(faceId, "ExtractFailed:${errorCode},faceId:${faceId}")
-                if (errorCode != ErrorInfo.MERR_FSDK_FACEFEATURE_LOW_CONFIDENCE_LEVEL
-                    && recognizeInfo.increaseAndGetExtractFeatureErrorRetryCount() > configuration.extractFeatureErrorRetryCount
-                ) {
+                if (isImageQualityDetect) {
+                    if (errorCode == ErrorInfo.MOK) {
+                        changeMsg(faceId, "ImageQuality too low,faceId:${faceId}")
+                    } else {
+                        changeMsg(faceId, "ImageDetectFailed:${errorCode},faceId:${faceId}")
+                    }
+                } else {
+                    changeMsg(faceId, "ExtractFailed:${errorCode},faceId:${faceId}")
+                }
+                if (recognizeInfo.increaseAndGetExtractFeatureErrorRetryCount() > configuration.extractFeatureErrorRetryCount) {
                     //错误码不为检测置信度低或者在尝试最大次数后，特征提取仍然失败，则认为识别未通过
                     recognizeInfo.resetExtractFeatureErrorRetryCount()
                     changeRecognizeStatus(faceId, RecognizeStatus.FAILED)
@@ -666,6 +676,7 @@ internal class FaceHelper(
                 }
             }
             configuration.livenessType == LivenessType.NONE || recognizeInfo.liveness == LivenessInfo.ALIVE -> {
+                recognizeInfo.mask = mask
                 searchFace(faceFeature, faceId, nv21)
             }
             recognizeInfo.liveness == RequestLivenessStatus.FAILED -> {
@@ -677,7 +688,14 @@ internal class FaceHelper(
                     try {
                         recognizeInfo.lock.wait()
                         //避免比对中途，人脸离开了
-                        onFaceFeatureInfoGet(faceFeature, faceId, errorCode, nv21, mask)
+                        onFaceFeatureInfoGet(
+                            faceFeature,
+                            faceId,
+                            errorCode,
+                            nv21,
+                            mask,
+                            isImageQualityDetect
+                        )
                     } catch (e: InterruptedException) {
                         LogUtil.w("${TAG}onFaceFeatureInfoGet: 等待活体结果时退出界面会执行，正常现象，可注释异常代码块")
                     }
@@ -909,15 +927,15 @@ internal class FaceHelper(
                     if (score >= threshold) {
                         extractFaceFeature()
                     } else {
-                        onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask)
+                        onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask, true)
                         onError(
                             FaceErrorType.IMAGE_QUALITY,
                             result,
-                            "imageQualityDetect score too low"
+                            "imageQuality score too low"
                         )
                     }
                 } else {
-                    onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask)
+                    onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask, true)
                     onError(
                         FaceErrorType.IMAGE_QUALITY,
                         result,
@@ -953,9 +971,9 @@ internal class FaceHelper(
                 )
             }
             if (result == ErrorInfo.MOK) {
-                onFaceFeatureInfoGet(faceFeature, faceId, result, rgbNV21, mask)
+                onFaceFeatureInfoGet(faceFeature, faceId, result, rgbNV21, mask, false)
             } else {
-                onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask)
+                onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask, false)
                 onError(
                     FaceErrorType.EXTRACT_FEATURE,
                     result,

@@ -30,8 +30,6 @@ class FaceServer {
 
     private val faceEngine = FaceEngine()
 
-    private val lock = Object()
-
     /**
      * 初始化人脸引擎
      * @param context 上下文
@@ -49,7 +47,7 @@ class FaceServer {
             if (faceOrient == DetectFaceOrientPriority.ASF_OP_ALL_OUT) {
                 DetectFaceOrientPriority.ASF_OP_0_ONLY
             } else {
-                DetectFaceOrientPriority.valueOf(faceOrient.name)
+                faceOrient
             }
         val result = faceEngine.init(
             context,
@@ -81,7 +79,7 @@ class FaceServer {
         var maxSimilar = 0f
         var maxSimilarIndex = -1
 
-        synchronized(lock) {
+        synchronized(faceEngine) {
             features.forEachIndexed { index, bean ->
                 tempFaceFeature.featureData = bean.feature
                 val result =
@@ -120,7 +118,7 @@ class FaceServer {
     }
 
     /**
-     * 通过Bitmap提取特征码
+     * 通过Bitmap提取特征码，仅提取一张人脸
      * 最好在子线程运行
      *
      * @param bitmap
@@ -143,64 +141,27 @@ class FaceServer {
             ArcSoftImageFormat.BGR24
         )
         if (code == ArcSoftImageUtilError.CODE_SUCCESS) {
-            //人脸检测
-            val faceInfoList: List<FaceInfo> = ArrayList()
-            synchronized(faceEngine) {
-                val detectFaceResult = faceEngine.detectFaces(
-                    imageData,
-                    alignedBitmap.width,
-                    alignedBitmap.height,
-                    FaceEngine.CP_PAF_BGR24,
-                    faceInfoList
-                )
-                if (detectFaceResult == ErrorInfo.MOK && faceInfoList.isNotEmpty()) {
-                    //口罩识别
-                    val detectMaskResult = faceEngine.process(
-                        imageData,
-                        alignedBitmap.width,
-                        alignedBitmap.height,
-                        FaceEngine.CP_PAF_NV21,
-                        faceInfoList,
-                        FaceEngine.ASF_MASK_DETECT
-                    )
-                    val maskList = mutableListOf<MaskInfo>()
-                    if (detectMaskResult == ErrorInfo.MOK) {
-                        val maskResult = faceEngine.getMask(maskList)
-                        if (maskResult == ErrorInfo.MOK) {
-                            if (maskList.size == faceInfoList.size) {
-                                val faceFeature = FaceFeature()
-                                val extractResult = faceEngine.extractFaceFeature(
-                                    imageData,
-                                    alignedBitmap.width,
-                                    alignedBitmap.height,
-                                    FaceEngine.CP_PAF_BGR24,
-                                    faceInfoList[0],
-                                    ExtractType.REGISTER,
-                                    maskList[0].mask,
-                                    faceFeature
-                                )
-                                if (extractResult == ErrorInfo.MOK) {
-                                    feature = faceFeature.featureData
-                                } else {
-                                    LogUtil.e("${TAG}extractFaceFeature-extractFaceFeature: $extractResult")
-                                }
-                            } else {
-                                LogUtil.e("${TAG}extractFaceFeature-getMask: maskList.size(${maskList.size}) != faceInfoList.size(${faceInfoList.size})")
-                            }
-                        } else {
-                            LogUtil.e("${TAG}extractFaceFeature-getMask: $maskResult")
-                        }
-                    } else {
-                        LogUtil.e("${TAG}extractFaceFeature-detectMaskResult: $detectMaskResult")
-                    }
-                } else {
-                    LogUtil.e("${TAG}extractFaceFeature-detectFaces: ${detectFaceResult}, faceInfoList.size: ${faceInfoList.size}")
-                }
-            }
+            feature = extractFaceFeature(
+                imageData, alignedBitmap.width,
+                alignedBitmap.height,
+                FaceEngine.CP_PAF_BGR24
+            )
         } else {
             LogUtil.e("${TAG}extractFaceFeature-bitmapToImageData: $code")
         }
         return feature
+    }
+
+    /**
+     * 摄像机预览数据提取人脸特征码，仅提取一张人脸
+     * 最好在子线程运行
+     *
+     * @param nv21 摄像机数据
+     * @param width 预览宽度
+     * @param height 预览高度
+     */
+    fun extractFaceFeature(nv21: ByteArray, width: Int, height: Int): ByteArray? {
+        return extractFaceFeature(nv21, width, height, FaceEngine.CP_PAF_NV21)
     }
 
     /**
@@ -211,5 +172,69 @@ class FaceServer {
             val result = faceEngine.unInit()
             LogUtil.w("${TAG}destroy-faceEngine.unInit:$result")
         }
+    }
+
+    private fun extractFaceFeature(
+        byteArray: ByteArray,
+        width: Int,
+        height: Int,
+        format: Int
+    ): ByteArray? {
+        var feature: ByteArray? = null
+        synchronized(faceEngine) {
+            val faceInfoList: List<FaceInfo> = ArrayList()
+            //人脸检测
+            val detectFaceResult = faceEngine.detectFaces(
+                byteArray,
+                width,
+                height,
+                format,
+                faceInfoList
+            )
+            if (detectFaceResult == ErrorInfo.MOK && faceInfoList.isNotEmpty()) {
+                //口罩识别
+                val detectMaskResult = faceEngine.process(
+                    byteArray,
+                    width,
+                    height,
+                    format,
+                    faceInfoList,
+                    FaceEngine.ASF_MASK_DETECT
+                )
+                val maskList = mutableListOf<MaskInfo>()
+                if (detectMaskResult == ErrorInfo.MOK) {
+                    val maskResult = faceEngine.getMask(maskList)
+                    if (maskResult == ErrorInfo.MOK) {
+                        if (maskList.size == faceInfoList.size) {
+                            val faceFeature = FaceFeature()
+                            val extractResult = faceEngine.extractFaceFeature(
+                                byteArray,
+                                width,
+                                height,
+                                format,
+                                faceInfoList[0],
+                                ExtractType.REGISTER,
+                                maskList[0].mask,
+                                faceFeature
+                            )
+                            if (extractResult == ErrorInfo.MOK) {
+                                feature = faceFeature.featureData
+                            } else {
+                                LogUtil.e("${TAG}extractFaceFeature-extractFaceFeature: $extractResult")
+                            }
+                        } else {
+                            LogUtil.e("${TAG}extractFaceFeature-getMask: maskList.size(${maskList.size}) != faceInfoList.size(${faceInfoList.size})")
+                        }
+                    } else {
+                        LogUtil.e("${TAG}extractFaceFeature-getMask: $maskResult")
+                    }
+                } else {
+                    LogUtil.e("${TAG}extractFaceFeature-detectMaskResult: $detectMaskResult")
+                }
+            } else {
+                LogUtil.e("${TAG}extractFaceFeature-detectFaces: ${detectFaceResult}, faceInfoList.size: ${faceInfoList.size}")
+            }
+        }
+        return feature
     }
 }

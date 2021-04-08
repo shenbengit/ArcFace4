@@ -83,7 +83,7 @@ class RecognizeInfo(val faceId: Int) {
     }
 
     override fun toString(): String {
-        return "RecognizeInfo(faceId=$faceId, liveness=$liveness, age=$age, gender=$gender, angle=$angle)"
+        return "RecognizeInfo(faceId=$faceId, liveness=$liveness, age=$age, gender=$gender, angle=$angle, mask=$mask)"
     }
 
 

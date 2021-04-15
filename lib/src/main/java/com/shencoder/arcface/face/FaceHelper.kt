@@ -43,19 +43,6 @@ internal class FaceHelper(
     private val detectFaceEngine: FaceEngine = FaceEngine()
 
     /**
-     * 人脸检测引擎-线程池
-     */
-    private val detectFaceExecutor: ExecutorService by lazy {
-        ThreadPoolExecutor(
-            1, 1, 0, TimeUnit.MILLISECONDS, LinkedBlockingQueue()
-        ) { r ->
-            val t = Thread(r)
-            t.name = "detect-thread-" + t.id
-            t
-        }
-    }
-
-    /**
      * 用于特征提取的引擎
      */
     private val extractFeatureEngine: FaceEngine = FaceEngine()
@@ -257,99 +244,97 @@ internal class FaceHelper(
         canvasWidth: Int,
         canvasHeight: Int,
     ) {
-        detectFaceExecutor.execute {
-            faceInfoList.clear()
-            maskInfoList.clear()
-            facePreviewInfo.clear()
-            //人脸检测
-            val result = detectFaceEngine.detectFaces(
+        faceInfoList.clear()
+        maskInfoList.clear()
+        facePreviewInfo.clear()
+        //人脸检测
+        val result = detectFaceEngine.detectFaces(
+            rgbNV21,
+            previewWidth,
+            previewHeight,
+            FaceEngine.CP_PAF_NV21,
+            faceInfoList
+        )
+        if (result != ErrorInfo.MOK) {
+            onError(
+                FaceErrorType.DETECT_FACES,
+                result,
+                FaceConstant.getFaceErrorMsg(result)
+            )
+            return
+        }
+        //是否有人
+        anybody(faceInfoList)
+
+        if (configuration.recognizeKeepMaxFace) {
+            //保留最大人脸
+            keepMaxFace(faceInfoList)
+        }
+        //是否启用口罩识别
+        if (faceInfoList.isNotEmpty() && configuration.enableMask) {
+            val detectMaskResult = detectFaceEngine.process(
                 rgbNV21,
                 previewWidth,
                 previewHeight,
                 FaceEngine.CP_PAF_NV21,
-                faceInfoList
+                faceInfoList,
+                FaceEngine.ASF_MASK_DETECT
             )
-            if (result != ErrorInfo.MOK) {
-                onError(
-                    FaceErrorType.DETECT_FACES,
-                    result,
-                    FaceConstant.getFaceErrorMsg(result)
-                )
-                return@execute
-            }
-            //是否有人
-            anybody(faceInfoList)
-
-            if (configuration.recognizeKeepMaxFace) {
-                //保留最大人脸
-                keepMaxFace(faceInfoList)
-            }
-            //是否启用口罩识别
-            if (configuration.enableMask) {
-                val detectMaskResult = detectFaceEngine.process(
-                    rgbNV21,
-                    previewWidth,
-                    previewHeight,
-                    FaceEngine.CP_PAF_NV21,
-                    faceInfoList,
-                    FaceEngine.ASF_MASK_DETECT
-                )
-                if (detectMaskResult == ErrorInfo.MOK) {
-                    val maskResult = detectFaceEngine.getMask(maskInfoList)
-                    if (maskResult != ErrorInfo.MOK) {
-                        onError(
-                            FaceErrorType.DETECT_MASK,
-                            detectMaskResult,
-                            FaceConstant.getFaceErrorMsg(maskResult)
-                        )
-                    }
-                } else {
+            if (detectMaskResult == ErrorInfo.MOK) {
+                val maskResult = detectFaceEngine.getMask(maskInfoList)
+                if (maskResult != ErrorInfo.MOK) {
                     onError(
                         FaceErrorType.DETECT_MASK,
                         detectMaskResult,
-                        FaceConstant.getFaceErrorMsg(detectMaskResult)
+                        FaceConstant.getFaceErrorMsg(maskResult)
                     )
                 }
-            }
-            //转换人脸信息
-            faceInfoList.forEachIndexed { index, faceInfo ->
-                val rgbAdjustRect = FaceRectTransformerUtil.adjustRect(
-                    previewWidth,
-                    previewHeight,
-                    canvasWidth,
-                    canvasHeight,
-                    configuration.isRgbMirror,
-                    faceInfo.rect,
-                    configuration.drawFaceRect.rgbOffsetX,
-                    configuration.drawFaceRect.rgbOffsetY
+            } else {
+                onError(
+                    FaceErrorType.DETECT_MASK,
+                    detectMaskResult,
+                    FaceConstant.getFaceErrorMsg(detectMaskResult)
                 )
-
-                val previewInfo =
-                    FacePreviewInfo(faceInfo.faceId, faceInfo, FaceInfo(faceInfo))
-                if (configuration.enableMask && maskInfoList.isNotEmpty() && maskInfoList.size == faceInfoList.size) {
-                    previewInfo.mask = maskInfoList[index].mask
-                }
-                previewInfo.rgbTransformedRect = rgbAdjustRect
-                previewInfo.irTransformedRect = FaceRectTransformerUtil.rgbRectToIrRect(
-                    rgbAdjustRect,
-                    FaceConstant.DEFAULT_ZOOM_RATIO,
-                    configuration.drawFaceRect.irOffsetX,
-                    configuration.drawFaceRect.irOffsetY
-                )
-                previewInfo.recognizeAreaValid =
-                    onPreviewCallback.getRecognizeAreaRect().contains(rgbAdjustRect)
-                facePreviewInfo.add(previewInfo)
             }
-
-            if (configuration.enableRecognize && faceInfoList.isNotEmpty()) {
-                //开始识别
-                doRecognize(rgbNV21, previewWidth, previewHeight, facePreviewInfo)
-            }
-            //清除离开人脸
-            clearLeftFace(faceInfoList)
-            //回调预览人脸数据
-            onPreviewCallback.onPreviewFaceInfo(facePreviewInfo)
         }
+        //转换人脸信息
+        faceInfoList.forEachIndexed { index, faceInfo ->
+            val rgbAdjustRect = FaceRectTransformerUtil.adjustRect(
+                previewWidth,
+                previewHeight,
+                canvasWidth,
+                canvasHeight,
+                configuration.isRgbMirror,
+                faceInfo.rect,
+                configuration.drawFaceRect.rgbOffsetX,
+                configuration.drawFaceRect.rgbOffsetY
+            )
+
+            val previewInfo =
+                FacePreviewInfo(faceInfo.faceId, faceInfo, FaceInfo(faceInfo))
+            if (configuration.enableMask && maskInfoList.isNotEmpty() && maskInfoList.size == faceInfoList.size) {
+                previewInfo.mask = maskInfoList[index].mask
+            }
+            previewInfo.rgbTransformedRect = rgbAdjustRect
+            previewInfo.irTransformedRect = FaceRectTransformerUtil.rgbRectToIrRect(
+                rgbAdjustRect,
+                FaceConstant.DEFAULT_ZOOM_RATIO,
+                configuration.drawFaceRect.irOffsetX,
+                configuration.drawFaceRect.irOffsetY
+            )
+            previewInfo.recognizeAreaValid =
+                onPreviewCallback.getRecognizeAreaRect().contains(rgbAdjustRect)
+            facePreviewInfo.add(previewInfo)
+        }
+
+        if (facePreviewInfo.isNotEmpty() && configuration.enableRecognize) {
+            //开始识别
+            doRecognize(rgbNV21, previewWidth, previewHeight, facePreviewInfo)
+        }
+        //清除离开人脸
+        clearLeftFace(faceInfoList)
+        //回调预览人脸数据
+        onPreviewCallback.onPreviewFaceInfo(facePreviewInfo)
     }
 
     fun getRecognizeInfo(faceId: Int): RecognizeInfo {
@@ -363,31 +348,29 @@ internal class FaceHelper(
 
     fun destroy() {
         mHandler.removeCallbacksAndMessages(null)
-        if (detectFaceExecutor.isShutdown.not()) {
-            detectFaceExecutor.shutdownNow()
-        }
+
         synchronized(detectFaceEngine) {
             val result = detectFaceEngine.unInit()
             LogUtil.w("${TAG}destroy-detectFaceEngine.unInit:$result")
         }
 
-        if (extractFeatureExecutor.isShutdown.not()) {
-            extractFeatureExecutor.shutdownNow()
-        }
-        extractFeatureThreadQueue.clear()
         synchronized(extractFeatureEngine) {
             val result = extractFeatureEngine.unInit()
             LogUtil.w("${TAG}destroy-extractFeatureEngine.unInit:$result")
         }
-
-        if (detectInfoExecutor.isShutdown.not()) {
-            detectInfoExecutor.shutdownNow()
+        if (extractFeatureExecutor.isShutdown.not()) {
+            extractFeatureExecutor.shutdownNow()
         }
-        detectInfoThreadQueue.clear()
+        extractFeatureThreadQueue.clear()
+
         synchronized(detectInfoEngine) {
             val result = detectInfoEngine.unInit()
             LogUtil.w("${TAG}destroy-detectInfoEngine.unInit:$result")
         }
+        if (detectInfoExecutor.isShutdown.not()) {
+            detectInfoExecutor.shutdownNow()
+        }
+        detectInfoThreadQueue.clear()
 
         faceServer.destroy()
 

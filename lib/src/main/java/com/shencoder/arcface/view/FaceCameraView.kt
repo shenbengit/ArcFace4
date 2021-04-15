@@ -99,6 +99,8 @@ class FaceCameraView @JvmOverloads constructor(
         rgbCameraView = findViewById(R.id.rgbCameraView)
         irCameraView = findViewById(R.id.irCameraView)
         flIrCamera = findViewById(R.id.flIrCamera)
+        rgbCameraView.setScaleType(ScaleType.CenterCrop)
+        irCameraView.setScaleType(ScaleType.CenterCrop)
     }
 
     fun setOnCameraListener(listener: OnCameraListener) {
@@ -123,7 +125,6 @@ class FaceCameraView @JvmOverloads constructor(
             context,
             rgbCameraView,
             lensPosition = getCameraFacing(configuration.rgbCameraFcing),
-            scaleType = ScaleType.CenterCrop,
             cameraConfiguration = rgbCameraConfiguration,
             cameraErrorCallback = {
                 LogUtil.e("RGB摄像头开启出错：${it.message}")
@@ -236,7 +237,6 @@ class FaceCameraView @JvmOverloads constructor(
                     context,
                     irCameraView,
                     lensPosition = getCameraFacing(configuration.irCameraFcing),
-                    scaleType = ScaleType.CenterCrop,
                     cameraConfiguration = irCameraConfiguration,
                     cameraErrorCallback = {
                         LogUtil.e("IR摄像头开启出错：${it.message}")

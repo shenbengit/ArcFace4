@@ -23,12 +23,16 @@ interface OnRecognizeCallback : FaceFeatureDataSource, FaceDetectCallback {
      * @param feature 人脸特征码
      * @param recognizeInfo 识别到的其他信息，包含活体值、年龄、性别、人脸角度等信息
      * @param nv21 camera预览数据
+     * @param width 预览数据宽度
+     * @param height 预览数据高度
      */
     fun onGetFaceFeature(
         faceId: Int,
         feature: ByteArray,
         recognizeInfo: RecognizeInfo,
-        nv21: ByteArray
+        nv21: ByteArray,
+        width: Int,
+        height: Int
     ) {
 
     }
@@ -40,12 +44,19 @@ interface OnRecognizeCallback : FaceFeatureDataSource, FaceDetectCallback {
      * @param bean 识别的数据 [faceFeatureList] 的子项
      * @param similar 识别通过的相似度
      * @param recognizeInfo 识别到的其他信息，包含活体值、年龄、性别、人脸角度等信息
+     * @param nv21 camera预览数据
+     * @param width 预览数据宽度
+     * @param height 预览数据高度
+     *
      * @return 人脸绘制框上成功时绘制的文字
      */
     fun onRecognized(
         bean: FaceFeatureDataBean,
         similar: Float,
-        recognizeInfo: RecognizeInfo
+        recognizeInfo: RecognizeInfo,
+        nv21: ByteArray,
+        width: Int,
+        height: Int
     ): String? {
         return null
     }

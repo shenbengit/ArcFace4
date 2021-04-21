@@ -629,6 +629,8 @@ internal class FaceHelper(
         faceId: Int,
         errorCode: Int,
         nv21: ByteArray,
+        width: Int,
+        height: Int,
         mask: Int,
         isImageQualityDetect: Boolean
     ) {
@@ -660,7 +662,7 @@ internal class FaceHelper(
             }
             configuration.livenessType == LivenessType.NONE || recognizeInfo.liveness == LivenessInfo.ALIVE -> {
                 recognizeInfo.mask = mask
-                searchFace(faceFeature, faceId, nv21)
+                searchFace(faceFeature, faceId, nv21, width, height)
             }
             recognizeInfo.liveness == RequestLivenessStatus.FAILED -> {
                 //活体检测失败
@@ -672,12 +674,8 @@ internal class FaceHelper(
                         recognizeInfo.lock.wait()
                         //避免比对中途，人脸离开了
                         onFaceFeatureInfoGet(
-                            faceFeature,
-                            faceId,
-                            errorCode,
-                            nv21,
-                            mask,
-                            isImageQualityDetect
+                            faceFeature, faceId, errorCode, nv21, width, height,
+                            mask, isImageQualityDetect
                         )
                     } catch (e: InterruptedException) {
                         LogUtil.w("${TAG}onFaceFeatureInfoGet: 等待活体结果时退出界面会执行，正常现象，可注释异常代码块")
@@ -690,7 +688,13 @@ internal class FaceHelper(
     /**
      * 搜索人脸
      */
-    private fun searchFace(faceFeature: FaceFeature, faceId: Int, nv21: ByteArray) {
+    private fun searchFace(
+        faceFeature: FaceFeature,
+        faceId: Int,
+        nv21: ByteArray,
+        width: Int,
+        height: Int
+    ) {
         val callback = configuration.recognizeCallback ?: let {
             changeRecognizeStatus(faceId, RecognizeStatus.FAILED)
             changeMsg(faceId, "Visitor,$faceId")
@@ -698,10 +702,8 @@ internal class FaceHelper(
         }
         if (configuration.enableCompareFace.not()) {
             callback.onGetFaceFeature(
-                faceId,
-                faceFeature.featureData,
-                getRecognizeInfo(faceId),
-                nv21
+                faceId, faceFeature.featureData,
+                getRecognizeInfo(faceId), nv21, width, height
             )
             changeRecognizeStatus(faceId, RecognizeStatus.SUCCEED)
             changeMsg(faceId, "Visitor,$faceId")
@@ -717,9 +719,8 @@ internal class FaceHelper(
             changeRecognizeStatus(faceId, RecognizeStatus.SUCCEED)
             val msg =
                 callback.onRecognized(
-                    compareResult.bean,
-                    compareResult.similar,
-                    getRecognizeInfo(faceId)
+                    compareResult.bean, compareResult.similar,
+                    getRecognizeInfo(faceId), nv21, width, height
                 )
             changeMsg(faceId, msg)
         } else {
@@ -910,7 +911,16 @@ internal class FaceHelper(
                     if (score >= threshold) {
                         extractFaceFeature()
                     } else {
-                        onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask, true)
+                        onFaceFeatureInfoGet(
+                            null,
+                            faceId,
+                            result,
+                            rgbNV21,
+                            width,
+                            height,
+                            mask,
+                            true
+                        )
                         onError(
                             FaceErrorType.IMAGE_QUALITY,
                             result,
@@ -918,7 +928,7 @@ internal class FaceHelper(
                         )
                     }
                 } else {
-                    onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask, true)
+                    onFaceFeatureInfoGet(null, faceId, result, rgbNV21, width, height, mask, true)
                     onError(
                         FaceErrorType.IMAGE_QUALITY,
                         result,
@@ -954,9 +964,18 @@ internal class FaceHelper(
                 )
             }
             if (result == ErrorInfo.MOK) {
-                onFaceFeatureInfoGet(faceFeature, faceId, result, rgbNV21, mask, false)
+                onFaceFeatureInfoGet(
+                    faceFeature,
+                    faceId,
+                    result,
+                    rgbNV21,
+                    width,
+                    height,
+                    mask,
+                    false
+                )
             } else {
-                onFaceFeatureInfoGet(null, faceId, result, rgbNV21, mask, false)
+                onFaceFeatureInfoGet(null, faceId, result, rgbNV21, width, height, mask, false)
                 onError(
                     FaceErrorType.EXTRACT_FEATURE,
                     result,

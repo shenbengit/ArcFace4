@@ -212,6 +212,26 @@ class FaceCameraView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * 手动重新识别
+     * @param faceId 人脸id
+     */
+    fun retryRecognizeDelayed(faceId: Int) {
+        if (this::faceHelper.isInitialized) {
+            faceHelper.retryRecognizeDelayed(faceId)
+        }
+    }
+
+    /**
+     * 手动重新活体检测
+     * @param faceId 人脸id
+     */
+    fun retryLivenessDetectDelayed(faceId: Int) {
+        if (this::faceHelper.isInitialized) {
+            faceHelper.retryLivenessDetectDelayed(faceId)
+        }
+    }
+
     private fun initFaceHelper(): Boolean {
         return if (FaceActive.isActivated(context)) {
             destroyFace()

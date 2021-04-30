@@ -152,7 +152,7 @@ allprojects {
         }
 
     })
-        .setDetectFaceOrient(DetectFaceOrient.ASF_OP_0_ONLY)//人脸检测角度
+        .setDetectFaceOrient(DetectFaceOrientPriority.ASF_OP_0_ONLY)//人脸检测角度
         .enableRecognize(true)//是否需要识别
         .setDetectFaceScaleVal(30)//用于数值化表示的最小人脸尺寸，该尺寸代表人脸尺寸相对于图片长边的占比。
         .setLivenessType(LivenessType.IR)//活体检测类型

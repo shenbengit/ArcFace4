@@ -1,5 +1,5 @@
 # ArcFace4.0
-基于[虹软人脸识别](https://ai.arcsoft.com.cn/)增值版Android SDK V4.0,封装人脸识别方法。
+基于[虹软人脸识别](https://ai.arcsoft.com.cn/)增值版Android SDK V4.0,封装人脸识别方法。支持口罩识别。
 > [增值版Android SDK V4.0文档](https://github.com/shenbengit/ArcFace4.0/blob/master/ARCSOFT_ARC_FACE_DEVELOPER'S_GUIDE_V4.0.pdf)    
 > [虹软人脸识别3.1封装](https://github.com/shenbengit/ArcFace)
 

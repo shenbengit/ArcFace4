@@ -1,10 +1,9 @@
 package com.shencoder.arcfacedemo
 
 import android.graphics.BitmapFactory
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Button
-import com.arcsoft.face.MaskInfo
+import androidx.appcompat.app.AppCompatActivity
 import com.arcsoft.face.enums.DetectFaceOrientPriority
 import com.shencoder.arcface.callback.OnErrorCallback
 import com.shencoder.arcface.callback.OnRecognizeCallback
@@ -69,19 +68,24 @@ class MainActivity : AppCompatActivity() {
                 faceId: Int,
                 feature: ByteArray,
                 recognizeInfo: RecognizeInfo,
-                nv21: ByteArray
+                nv21: ByteArray,
+                width: Int,
+                height: Int
             ) {
                 println("人脸特征码大小:" + feature.size)
                 val extractFaceFeature = faceServer.extractFaceFeature(nv21, 1280, 720)
                 val compareFaceFeature =
                     faceServer.compareFaceFeature(feature, extractFaceFeature!!)
-                println("相似度:" + compareFaceFeature)
+                println("相似度:$compareFaceFeature")
             }
 
             override fun onRecognized(
                 bean: FaceFeatureDataBean,
                 similar: Float,
-                recognizeInfo: RecognizeInfo
+                recognizeInfo: RecognizeInfo,
+                nv21: ByteArray,
+                width: Int,
+                height: Int
             ): String? {
                 println("人员识别成功:$recognizeInfo")
                 return "识别成功,${similar}"
@@ -96,7 +100,7 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         })
-            .setDetectFaceOrient(DetectFaceOrientPriority.ASF_OP_0_ONLY)
+            .setDetectFaceOrient(DetectFaceOrientPriority.ASF_OP_ALL_OUT)
             .enableRecognize(true)
             .setLivenessType(LivenessType.RGB)
             .setRgbLivenessThreshold(0.6f)
@@ -120,7 +124,7 @@ class MainActivity : AppCompatActivity() {
             .enableCompareFace(true)
             .setViewfinderText("请进行人脸识别")
             .setViewfinderGravity(ViewfinderView.TextLocation.BOTTOM)
-            .enableMask(false)
+            .enableMask(true)
             .setFaceSizeLimit(160)
             .setImageQualityNoMaskRecognizeThreshold(0.49f)
             .setImageQualityMaskRecognizeThreshold(0.29f)

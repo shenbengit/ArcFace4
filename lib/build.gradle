@@ -1,7 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
-apply from: 'bintray.gradle'
+//apply from: 'bintray.gradle'
 
 android {
     compileSdkVersion rootProject.ext.android.compileSdkVersion
@@ -14,14 +13,11 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles "consumer-rules.pro"
+        consumerProguardFiles "proguard-rules.pro"
     }
 
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
+    compileOptions {
+        kotlinOptions.freeCompilerArgs += ['-module-name', "com.github.shenbengit.ArcFace4_0"]
     }
 
     sourceSets {
@@ -35,7 +31,7 @@ dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
-    api 'io.fotoapparat:fotoapparat:2.7.0'
+    implementation 'com.github.RedApparat.Fotoapparat:fotoapparat:2.7.0'
     api files('libs/arcsoft_face.jar')
     api files('libs/arcsoft_image_util.jar')
 }

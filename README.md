@@ -11,26 +11,25 @@
 不限制识别区域
 
 ![ArcFace](https://github.com/shenbengit/ArcFace/blob/master/screenshots/ArcFace02.gif)
-## 引入
-[ ![Download](https://api.bintray.com/packages/shencoder/android-lib/arc-face-4.0/images/download.svg) ](https://bintray.com/shencoder/android-lib/arc-face-4.0/_latestVersion)
-仅支持`AndroidX`
-### Gradle:
-最新版本
-```gradle
-//必选(armeabi-v7a|arm64-v8a)至少添加一个
-implementation 'com.shencoder:arc-face-4.0:latestVersion'
-//可选，支持armeabi-v7a
-implementation 'com.shencoder:arc-face-4.0-armeabi-v7a:1.0.0'
-//可选，支持arm64-v8a
-implementation 'com.shencoder:arc-face-4.0-arm64-v8a:1.0.0'
-```
-###### 如果Gradle出现implementation失败的情况，可以在Project的build.gradle里面添加如下：
+### 将JitPack存储库添加到您的项目中(项目根目录下build.gradle文件)
 ```gradle
 allprojects {
     repositories {
-        //...
-        maven { url 'https://dl.bintray.com/shencoder/android-lib' }
+        ...
+        maven { url 'https://jitpack.io' }
     }
+}
+```
+### 添加依赖
+[![](https://jitpack.io/v/shenbengit/ArcFace4.svg)](https://jitpack.io/#shenbengit/ArcFace4)
+```gradle
+dependencies {
+    //必选(armeabi-v7a|arm64-v8a)至少添加一个
+    implementation 'com.github.shenbengit.ArcFace4:lib:Tag'
+    //可选，支持armeabi-v7a
+    implementation 'com.github.shenbengit.ArcFace4:lib-v7a:Tag'
+    //可选，支持arm64-v8a
+    implementation 'com.github.shenbengit.ArcFace4:lib-v8a:Tag'
 }
 ```
 

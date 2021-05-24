@@ -152,7 +152,7 @@ allprojects {
         }
 
     })
-        .setDetectFaceOrient(DetectFaceOrient.ASF_OP_0_ONLY)//人脸检测角度
+        .setDetectFaceOrient(DetectFaceOrientPriority.ASF_OP_0_ONLY)//人脸检测角度
         .enableRecognize(true)//是否需要识别
         .setDetectFaceScaleVal(30)//用于数值化表示的最小人脸尺寸，该尺寸代表人脸尺寸相对于图片长边的占比。
         .setLivenessType(LivenessType.IR)//活体检测类型
@@ -244,14 +244,13 @@ FaceActive.generateActiveDeviceInfo(context: Context, saveFilePath: String, call
 /**
   * 初始化人脸引擎
   * @param context 上下文
-  * @param faceOrient 人脸检测角度，单一角度检测，不支持[DetectFaceOrient.ASF_OP_ALL_OUT]
-  * [DetectFaceOrient.ASF_OP_0_ONLY]
-  * [DetectFaceOrient.ASF_OP_90_ONLY]
-  * [DetectFaceOrient.ASF_OP_180_ONLY]
-  * [DetectFaceOrient.ASF_OP_270_ONLY]
-  * @param detectFaceScaleVal 识别的最小人脸比例，取值范围[2,32]
+  * @param faceOrient 人脸检测角度，单一角度检测，不支持[DetectFaceOrientPriority.ASF_OP_ALL_OUT]
+  * [DetectFaceOrientPriority.ASF_OP_0_ONLY]
+  * [DetectFaceOrientPriority.ASF_OP_90_ONLY]
+  * [DetectFaceOrientPriority.ASF_OP_180_ONLY]
+  * [DetectFaceOrientPriority.ASF_OP_270_ONLY]
   */
-fun init(context: Context, faceOrient: DetectFaceOrient = DetectFaceOrient.ASF_OP_0_ONLY, @IntRange(from = 2, to = 32) detectFaceScaleVal: Int = 16) 
+fun init(context: Context, faceOrient: DetectFaceOrientPriority) 
 ```
 * 比对人脸 1:N
 ```kotlin
@@ -311,20 +310,13 @@ fun destroy()
   * @param context 上下文
   * @param enableImageQuality 启用图片质量检测
   * @param detectFaceMaxNum 检测人脸数量
-  * @param detectFaceScaleVal 识别的最小人脸比例，取值范围[2,32]
-  * @param detectFaceOrient 人脸检测角度
-  * [DetectFaceOrient.ASF_OP_0_ONLY]
-  * [DetectFaceOrient.ASF_OP_90_ONLY]
-  * [DetectFaceOrient.ASF_OP_180_ONLY]
-  * [DetectFaceOrient.ASF_OP_270_ONLY]
-  * [DetectFaceOrient.ASF_OP_ALL_OUT]
+  * @param detectFaceOrient 检测人脸方向
   */
 fun init(
     context: Context,
     enableImageQuality: Boolean = false,
     detectFaceMaxNum: Int,
-    detectFaceScaleVal: Int = 16,
-    detectFaceOrient: DetectFaceOrient = DetectFaceOrient.ASF_OP_0_ONLY
+    detectFaceOrient: DetectFaceOrientPriority
 )
 ```
 * 人脸检测回调

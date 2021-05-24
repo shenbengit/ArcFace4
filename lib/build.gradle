@@ -1,6 +1,5 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-//apply from: 'bintray.gradle'
 
 android {
     compileSdkVersion rootProject.ext.android.compileSdkVersion
@@ -16,7 +15,7 @@ android {
     }
 
     compileOptions {
-        kotlinOptions.freeCompilerArgs += ['-module-name', "com.github.shenbengit.ArcFace4_0"]
+        kotlinOptions.freeCompilerArgs += ['-module-name', "com.github.shenbengit.ArcFace4"]
     }
 
     sourceSets {
@@ -29,8 +28,8 @@ android {
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
-    implementation 'com.github.RedApparat.Fotoapparat:fotoapparat:2.7.0'
+    api 'androidx.constraintlayout:constraintlayout:2.0.4'
+    api 'com.github.RedApparat.Fotoapparat:fotoapparat:2.7.0'
     api files('libs/arcsoft_face.jar')
     api files('libs/arcsoft_image_util.jar')
 }

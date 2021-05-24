@@ -19,7 +19,7 @@
 ```gradle
 //必选(armeabi-v7a|arm64-v8a)至少添加一个
 implementation 'com.shencoder:arc-face-4.0:latestVersion'
-//可选，支持armeabi-v7
+//可选，支持armeabi-v7a
 implementation 'com.shencoder:arc-face-4.0-armeabi-v7a:1.0.0'
 //可选，支持arm64-v8a
 implementation 'com.shencoder:arc-face-4.0-arm64-v8a:1.0.0'
